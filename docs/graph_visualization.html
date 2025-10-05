@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tutor Orchestrator - LangGraph</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: Arial; max-width: 1200px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        h1 { color: #667eea; text-align: center; }
+        .mermaid { text-align: center; background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; }
+        .info { background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3; }
+        .legend { background: #fff3e0; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        .legend h3 { color: #ff9800; margin-top: 0; }
+        .legend ul { list-style-type: none; padding-left: 0; }
+        .legend li { padding: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 AI Tutor Orchestrator</h1>
+        <p style="text-align:center;color:#666;">LangGraph StateGraph Architecture</p>
+        <div class="info"><strong>Architecture:</strong> LangGraph StateGraph with Conditional Routing</div>
+        <div class="mermaid">
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	__end__([<p>__end__</p>]):::last
+	classifier(classifier)
+	groq_agent(groq_agent)
+	openrouter_agent(openrouter_agent)
+	__start__ --> classifier;
+	groq_agent --> __end__;
+	openrouter_agent --> __end__;
+	classifier -. &nbsp;academic&nbsp; .-> groq_agent;
+	classifier -. &nbsp;coding&nbsp; .-> openrouter_agent;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
+
+        </div>
+        <div class="legend">
+            <h3>📊 Graph Components</h3>
+            <ul>
+                <li><strong>START:</strong> Entry point for all queries</li>
+                <li><strong>Classifier:</strong> Analyzes query type</li>
+                <li><strong>Groq Agent:</strong> Processes academic queries</li>
+                <li><strong>OpenRouter Agent:</strong> Processes coding queries</li>
+                <li><strong>END:</strong> Exit point</li>
+            </ul>
+        </div>
+        <div class="info"><strong>Demo:</strong> http://localhost:8000/docs</div>
+    </div>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: "default" });
+    </script>
+</body>
+</html>

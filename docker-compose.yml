@@ -1,0 +1,102 @@
+﻿version: '3.8'
+
+services:
+  # FastAPI Application Service
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-tutor-orchestrator
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1  # Ensure Python output is not buffered
+      - LOG_LEVEL=INFO
+    volumes:
+      # Code volume for development (hot reload)
+      - .:/app
+      # Separate volume for SQLite database persistence
+      - db_data:/app/data
+      # Logs volume
+      - logs_data:/app/logs
+    # Health check for the FastAPI service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits for production stability
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    # Restart policy for production reliability
+    restart: unless-stopped
+    # Network configuration
+    networks:
+      - ai-tutor-network
+    # Dependency handling
+    depends_on:
+      - redis
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis for caching and session management (optional but recommended)
+  redis:
+    image: redis:7-alpine
+    container_name: ai-tutor-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - ai-tutor-network
+    # Redis configuration for persistence
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+# Named volumes for data persistence
+volumes:
+  # SQLite database storage
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data
+  # Application logs
+  logs_data:
+    driver: local
+    driver_opts:
+      type: none  
+      o: bind
+      device: ./logs
+  # Redis data persistence
+  redis_data:
+    driver: local
+
+# Custom network for service communication
+networks:
+  ai-tutor-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
