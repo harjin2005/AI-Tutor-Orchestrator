@@ -42,8 +42,17 @@ class TutorResponse(BaseModel):
                 "response": "Flashcards generated.",
                 "model_used": "none",
                 "selected_tool": "flashcard",
-                "extracted_params": {"topic": "photosynthesis", "count": 7, "teaching_style": "visual"},
-                "tool_result": {"flashcards": [...]},
+                "extracted_params": {
+                    "topic": "photosynthesis",
+                    "count": 7,
+                    "teaching_style": "visual"
+                },
+                "tool_result": {
+                    "flashcards": [
+                        {"q": "What is photosynthesis?", "a": "Conversion of light energy to chemical energy."},
+                        {"q": "Main products?", "a": "Glucose and oxygen."}
+                    ]
+                },
                 "classification": "academic",
                 "confidence": "high",
                 "timestamp": "2025-10-05T08:30:00Z",

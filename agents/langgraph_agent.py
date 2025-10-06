@@ -1,11 +1,11 @@
-from typing import TypedDict, Annotated, Literal, Dict, Any
+from typing import TypedDict
 from langgraph.graph import StateGraph, END
 from agents.base_agent import BaseAgent
 from agents.parameter_extractor import ParameterExtractor
 from tools.educational_tools import NoteMakerTool, FlashcardGeneratorTool, ConceptExplainerTool
 from schemas.user_context import UserContext
-import operator
 
+# --------- Graph State ---------
 class AgentState(TypedDict):
     query: str
     user_context: dict
@@ -13,10 +13,12 @@ class AgentState(TypedDict):
     selected_tool: str
     tool_result: dict
     response: str
+    model_used: str
 
+# --------- Agent ---------
 class LangGraphTutorAgent(BaseAgent):
     """LangGraph-powered Tutor Agent with Parameter Extraction & Tool Orchestration"""
-    
+
     def __init__(self):
         super().__init__()
         self.param_extractor = ParameterExtractor()
@@ -28,44 +30,41 @@ class LangGraphTutorAgent(BaseAgent):
     def _create_graph(self):
         workflow = StateGraph(AgentState)
 
-        # Step 1: Parameter extraction node
+        # Nodes
         workflow.add_node("parameter_extraction", self._parameter_extraction_node)
-        # Step 2: Tool selection node
         workflow.add_node("tool_selection", self._tool_selection_node)
-        # Step 3: Tool execution node
         workflow.add_node("tool_execution", self._tool_execution_node)
 
-        # Entry point
+        # Entry and edges
         workflow.set_entry_point("parameter_extraction")
-        # Graph edges
         workflow.add_edge("parameter_extraction", "tool_selection")
         workflow.add_edge("tool_selection", "tool_execution")
         workflow.add_edge("tool_execution", END)
 
         return workflow.compile()
 
+    # --------- Nodes (ensure ALL are class-level, not nested) ---------
     def _parameter_extraction_node(self, state: AgentState) -> AgentState:
         query = state["query"]
         user_context = state.get("user_context", {})
         params = self.param_extractor.extract_parameters(query, user_context)
         return {**state, "extracted_params": params}
 
-        def _tool_selection_node(self, state: AgentState) -> AgentState:
-            query = state["query"].lower()
-            params = state.get("extracted_params", {})
-            if "flashcard" in query or "card" in query:
-                tool = "flashcard"
-            elif "note" in query or params.get("note_taking_style"):
-                tool = "note_maker"
-            elif "explain" in query or params.get("concept_to_explain"):
-                tool = "concept_explainer"
+    def _tool_selection_node(self, state: AgentState) -> AgentState:
+        query = state["query"].lower()
+        params = state.get("extracted_params", {})
+        if "flashcard" in query or "card" in query:
+            tool = "flashcard"
+        elif "note" in query or params.get("note_taking_style"):
+            tool = "note_maker"
+        elif "explain" in query or params.get("concept_to_explain"):
+            tool = "concept_explainer"
+        else:
+            if params.get("subject") in ["computer_science", "coding", "programming"]:
+                tool = "openrouter_agent"
             else:
-                if params.get("subject") in ["computer_science", "coding", "programming"]:
-                    tool = "openrouter_agent"
-                else:
-                    tool = "groq_agent"
-            return {**state, "selected_tool": tool}
-
+                tool = "groq_agent"
+        return {**state, "selected_tool": tool}
 
     def _tool_execution_node(self, state: AgentState) -> AgentState:
         tool = state.get("selected_tool")
@@ -89,28 +88,31 @@ class LangGraphTutorAgent(BaseAgent):
         else:
             result = {"response": "No suitable tool found.", "model_used": "none"}
 
-        # Universal response: either tool output or AI
-        return {**state, "tool_result": result,
-                "response": result.get("response", str(result)),
-                "model_used": result.get("model_used", tool)}
+        return {
+            **state,
+            "tool_result": result,
+            "response": result.get("response", str(result)),
+            "model_used": result.get("model_used", tool),
+        }
 
+    # --------- Public entry ---------
     async def process(self, query: str) -> dict:
-        # Use static user context for demo (can fetch dynamically if needed)
         user_context = UserContext().dict()
-        initial_state = {
+        initial_state: AgentState = {
             "query": query,
             "user_context": user_context,
             "extracted_params": {},
             "selected_tool": "",
             "tool_result": {},
-            "response": ""
+            "response": "",
+            "model_used": "",
         }
         result = await self.graph.ainvoke(initial_state)
         return {
             "agent": "tutor_langgraph",
-            "response": result["response"],
+            "response": result.get("response", ""),
             "tool_result": result.get("tool_result", {}),
             "selected_tool": result.get("selected_tool", ""),
             "extracted_params": result.get("extracted_params", {}),
-            "model_used": result.get("model_used", "")
+            "model_used": result.get("model_used", ""),
         }
